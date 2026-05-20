@@ -36,12 +36,13 @@ def get_defaults(ticker):
         'growth': round(growth_real, 2),
         'fcf'   : round(fcf_real, 2),
     }
-
+ticker = st.session_state.get('ticker', 'AAPL')
 defaults = get_defaults(ticker)
 
 with st.sidebar:
     st.title("⚙️ Model Controls")
-    ticker = st.text_input("Ticker", value="AAPL").upper()
+    ticker = st.text_input("Ticker", value=ticker).upper()
+
     
     st.caption(f"📊 Auto-calibrated from {ticker} real data")
     
