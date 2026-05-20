@@ -14,21 +14,55 @@ st.set_page_config(
     layout="wide"
 )
 
-# ── SIDEBAR ──────────────────────────────────────
+# ── AUTO-CALIBRATION ─────────────────────────────────
+@st.cache_data(ttl=3600)
+def get_defaults(ticker):
+    info = yf.Ticker(ticker).info
+    
+    # Beta réel
+    beta_real = info.get('beta', 1.2) or 1.2
+    
+    # Croissance historique revenue
+    growth_real = info.get('revenueGrowth', 0.07) or 0.07
+    growth_real = max(0.0, min(0.30, growth_real))
+    
+    # FCF Margin réel
+    fcf = info.get('freeCashflow', 0) or 0
+    rev = info.get('totalRevenue', 1) or 1
+    fcf_real = max(0.05, min(0.40, fcf/rev)) if rev > 0 else 0.15
+    
+    return {
+        'beta'  : round(beta_real, 2),
+        'growth': round(growth_real, 2),
+        'fcf'   : round(fcf_real, 2),
+    }
+
+defaults = get_defaults(ticker)
+
 with st.sidebar:
     st.title("⚙️ Model Controls")
     ticker = st.text_input("Ticker", value="AAPL").upper()
+    
+    st.caption(f"📊 Auto-calibrated from {ticker} real data")
+    
     st.subheader("📈 Growth Assumptions")
-    g1 = st.slider("Growth Y+1", 0.0, 0.30, 0.07, 0.01, format="%.0f%%")
-    g2 = st.slider("Growth Y+2", 0.0, 0.30, 0.08, 0.01, format="%.0f%%")
-    g3 = st.slider("Growth Y+3", 0.0, 0.20, 0.07, 0.01, format="%.0f%%")
-    g4 = st.slider("Growth Y+4", 0.0, 0.20, 0.06, 0.01, format="%.0f%%")
-    g5 = st.slider("Growth Y+5", 0.0, 0.20, 0.05, 0.01, format="%.0f%%")
+    g = defaults['growth']
+    g1 = st.slider("Growth Y+1", 0.0, 0.30, g,        0.01, format="%.0f%%")
+    g2 = st.slider("Growth Y+2", 0.0, 0.30, g,        0.01, format="%.0f%%")
+    g3 = st.slider("Growth Y+3", 0.0, 0.20, g*0.9,    0.01, format="%.0f%%")
+    g4 = st.slider("Growth Y+4", 0.0, 0.20, g*0.8,    0.01, format="%.0f%%")
+    g5 = st.slider("Growth Y+5", 0.0, 0.20, g*0.7,    0.01, format="%.0f%%")
+    
     st.subheader("💰 FCF & Discount")
-    fcf_m = st.slider("FCF Margin", 0.10, 0.40, 0.26, 0.01, format="%.0f%%")
-    beta  = st.slider("Beta", 0.5, 2.5, 1.25, 0.05)
+    fcf_m = st.slider("FCF Margin", 0.05, 0.40, 
+                       defaults['fcf'], 0.01, format="%.0f%%")
+    beta  = st.slider("Beta", 0.5, 2.5, 
+                       defaults['beta'], 0.05)
     tgr   = st.slider("Terminal Growth", 0.01, 0.05, 0.03, 0.005)
-    run   = st.button("🚀 Run Valuation", type="primary", use_container_width=True)
+    
+    run = st.button("🚀 Run Valuation", 
+                    type="primary", use_container_width=True)
+
 # ── DATA FETCH ───────────────────────────────────
 @st.cache_data(ttl=3600)
 def fetch(ticker):
