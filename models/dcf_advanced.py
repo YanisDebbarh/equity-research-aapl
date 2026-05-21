@@ -18,6 +18,15 @@ SECTOR_DEFAULTS = {
     'DEFAULT':               {'growth': 0.06, 'margin': 0.12, 'tgr': 0.025},
 }
 
+FALLBACK = {
+    'revenue_ltm'        : 0,
+    'ebit_margin_avg'    : 0.15,
+    'capex_pct_avg'      : 0.05,
+    'nwc_pct_avg'        : 0.02,
+    'tax_rate'           : 0.21,
+    'revenue_growth_hist': 0.07,
+}
+
 
 class DCFAdvanced:
 
@@ -27,19 +36,25 @@ class DCFAdvanced:
         self.info   = {}
         for attempt in range(3):
             try:
-                self.info = self.stock.info
-                if self.info:
+                data = self.stock.info
+                if data and isinstance(data, dict):
+                    self.info = data
                     break
             except Exception:
                 if attempt < 2:
                     time.sleep(3)
-                else:
-                    self.info = {}
 
+    # ── SECTOR DEFAULTS ──────────────────────────────
     def get_sector_defaults(self):
-        sector = self.info.get('sector', 'DEFAULT')
-        return SECTOR_DEFAULTS.get(sector, SECTOR_DEFAULTS['DEFAULT'])
+        try:
+            sector = self.info.get('sector', 'DEFAULT')
+            if not sector:
+                sector = 'DEFAULT'
+            return SECTOR_DEFAULTS.get(sector, SECTOR_DEFAULTS['DEFAULT'])
+        except Exception:
+            return SECTOR_DEFAULTS['DEFAULT']
 
+    # ── HISTORICAL DATA ──────────────────────────────
     def get_historical_data(self):
         try:
             income  = self.stock.financials.T
@@ -59,11 +74,12 @@ class DCFAdvanced:
             capex   = safe(cf, 'Capital Expenditure')
             curr_a  = safe(balance, 'Current Assets')
             curr_l  = safe(balance, 'Current Liabilities')
-            cash    = safe(balance, 'Cash And Cash Equivalents',
+            cash    = safe(balance,
+                          'Cash And Cash Equivalents',
                           'Cash Cash Equivalents And Short Term Investments')
 
-            nwc      = curr_a - cash - curr_l
-            tax_rate = (tax_exp / pretax).clip(0.10, 0.35).mean()
+            nwc         = curr_a - cash - curr_l
+            tax_rate    = (tax_exp / pretax).clip(0.10, 0.35).mean()
             if pd.isna(tax_rate):
                 tax_rate = 0.21
 
@@ -71,43 +87,46 @@ class DCFAdvanced:
             capex_pct   = (capex.abs() / revenue).clip(0, 0.20)
             delta_nwc   = nwc.diff(-1)
             nwc_pct     = (delta_nwc / revenue).clip(-0.10, 0.10)
-
-            rev_growth = revenue.pct_change(-1).mean()
+            rev_growth  = revenue.pct_change(-1).mean()
             if pd.isna(rev_growth):
                 rev_growth = 0.07
 
             return {
-                'revenue_ltm'         : float(revenue.iloc[0] / 1e6),
-                'ebit_margin_avg'     : float(ebit_margin.mean()),
-                'capex_pct_avg'       : float(capex_pct.mean()),
-                'nwc_pct_avg'         : float(nwc_pct.mean()),
-                'tax_rate'            : float(tax_rate),
-                'revenue_growth_hist' : float(rev_growth),
+                'revenue_ltm'        : float(revenue.iloc[0] / 1e6),
+                'ebit_margin_avg'    : float(ebit_margin.mean()),
+                'capex_pct_avg'      : float(capex_pct.mean()),
+                'nwc_pct_avg'        : float(nwc_pct.mean()),
+                'tax_rate'           : float(tax_rate),
+                'revenue_growth_hist': float(rev_growth),
             }
 
         except Exception:
-            return {
-                'revenue_ltm'         : self.info.get('totalRevenue', 0) / 1e6,
-                'ebit_margin_avg'     : 0.15,
-                'capex_pct_avg'       : 0.05,
-                'nwc_pct_avg'         : 0.02,
-                'tax_rate'            : 0.21,
-                'revenue_growth_hist' : 0.07,
-            }
+            try:
+                rev = (self.info.get('totalRevenue', 0) or 0) / 1e6
+            except Exception:
+                rev = 0
+            result = FALLBACK.copy()
+            result['revenue_ltm'] = rev
+            return result
 
+    # ── WACC ─────────────────────────────────────────
     def compute_wacc(self, rfr=0.045, erp=0.055):
-        beta     = self.info.get('beta', 1.2) or 1.2
-        ke       = rfr + beta * erp
-        interest = abs(self.info.get('interestExpense', 0) or 0)
-        debt     = self.info.get('totalDebt', 1) or 1
-        kd_pre   = max(0.02, min(0.10, interest / debt))
-        hist     = self.get_historical_data()
-        t        = hist['tax_rate']
-        kd       = kd_pre * (1 - t)
-        mkt_cap  = self.info.get('marketCap', 1) or 1
-        we       = mkt_cap / (mkt_cap + debt)
-        wd       = debt    / (mkt_cap + debt)
-        wacc     = max(0.06, min(0.15, we * ke + wd * kd))
+        try:
+            beta     = float(self.info.get('beta', 1.2) or 1.2)
+            ke       = rfr + beta * erp
+            interest = abs(float(self.info.get('interestExpense', 0) or 0))
+            debt     = float(self.info.get('totalDebt', 1) or 1)
+            kd_pre   = max(0.02, min(0.10, interest / debt))
+            hist     = self.get_historical_data()
+            t        = hist['tax_rate']
+            kd       = kd_pre * (1 - t)
+            mkt_cap  = float(self.info.get('marketCap', 1) or 1)
+            we       = mkt_cap / (mkt_cap + debt)
+            wd       = debt    / (mkt_cap + debt)
+            wacc     = max(0.06, min(0.15, we * ke + wd * kd))
+        except Exception:
+            ke, kd, we, wd, t = 0.11, 0.03, 0.85, 0.15, 0.21
+            wacc = 0.10
 
         self._results = {
             'wacc'          : wacc,
@@ -119,6 +138,7 @@ class DCFAdvanced:
         }
         return wacc
 
+    # ── UFCF PROJECTION ──────────────────────────────
     def project_ufcf(self, growth_rates, ebit_margin,
                      capex_pct, nwc_pct, tax_rate, base_revenue):
         revenue = base_revenue
@@ -141,6 +161,7 @@ class DCFAdvanced:
         self._projection = pd.DataFrame(rows)
         return self._projection
 
+    # ── DISCOUNT ─────────────────────────────────────
     def discount(self, wacc, tgr):
         proj    = self._projection
         pv_list = []
@@ -162,24 +183,31 @@ class DCFAdvanced:
         })
         return self._results
 
+    # ── EQUITY PER SHARE ─────────────────────────────
     def equity_per_share(self):
-        ev     = self._results['enterprise_value_m']
-        cash   = (self.info.get('totalCash', 0) or 0) / 1e6
-        debt   = (self.info.get('totalDebt', 0) or 0) / 1e6
-        shares = (self.info.get('sharesOutstanding', 1) or 1) / 1e6
-        equity = ev + cash - debt
-        price  = equity / shares if shares > 0 else 0
+        try:
+            ev     = self._results['enterprise_value_m']
+            cash   = (self.info.get('totalCash', 0) or 0) / 1e6
+            debt   = (self.info.get('totalDebt', 0) or 0) / 1e6
+            shares = (self.info.get('sharesOutstanding', 1) or 1) / 1e6
+            equity = ev + cash - debt
+            price  = equity / shares if shares > 0 else 0
+        except Exception:
+            price  = 0
+            equity = 0
+
         self._results['equity_value_m']  = equity
         self._results['intrinsic_price'] = price
         return price
 
+    # ── RUN ALL ──────────────────────────────────────
     def run(self, growth_rates, ebit_margin=None,
             capex_pct=None, nwc_pct=None,
             tgr=0.03, rfr=0.045, erp=0.055):
         hist        = self.get_historical_data()
-        ebit_margin = ebit_margin or hist['ebit_margin_avg']
-        capex_pct   = capex_pct   or hist['capex_pct_avg']
-        nwc_pct     = nwc_pct     or hist['nwc_pct_avg']
+        ebit_margin = ebit_margin if ebit_margin else hist['ebit_margin_avg']
+        capex_pct   = capex_pct   if capex_pct   else hist['capex_pct_avg']
+        nwc_pct     = nwc_pct     if nwc_pct     else hist['nwc_pct_avg']
         tax_rate    = hist['tax_rate']
         base_rev    = hist['revenue_ltm']
         wacc        = self.compute_wacc(rfr, erp)
