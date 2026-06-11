@@ -95,7 +95,7 @@ price, results, proj, info, hist = run_dcf(
     ebit_m, capex, tgr, rfr, erp
 )
 
-current_price = info.get('currentPrice', 0)
+current_price = hist["Close"].dropna().iloc[-1]
 upside = (price / current_price - 1) * 100 if current_price else 0
 rating = "BUY" if upside > 10 else "SELL" if upside < -10 else "HOLD"
 
