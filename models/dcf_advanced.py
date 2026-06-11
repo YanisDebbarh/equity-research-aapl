@@ -183,7 +183,7 @@ class DCFAdvanced:
         })
         return self._results
 
-    # ── EQUITY PER SHARE ─────────────────────────────
+    # ── EQUITY PER SHARE ───────────────────────────── 
     def equity_per_share(self):
     try:
         ev = self._results['enterprise_value_m']
