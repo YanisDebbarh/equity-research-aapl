@@ -85,6 +85,9 @@ def run_dcf(ticker, g1, g2, g3, g4, g5,
         rfr         =rfr,
         erp         =erp,
     )
+                shares = info.get("sharesOutstanding", None)
+if shares:
+    price = price / shares
     proj = dcf._projection
     info = dcf.info
     hist = yf.Ticker(ticker).history(period="2y")
