@@ -88,8 +88,6 @@ def run_dcf(ticker, g1, g2, g3, g4, g5,
     erp=erp
 )
 
-    st.write(results)
-
 proj = dcf._projection
 info = dcf.info
     yf_ticker = yf.Ticker(ticker)
