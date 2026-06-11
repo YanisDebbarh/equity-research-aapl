@@ -184,7 +184,7 @@ class DCFAdvanced:
         return self._results
 
     # ── EQUITY PER SHARE ─────────────────────────────
-  def equity_per_share(self):
+    def equity_per_share(self):
     try:
         ev = self._results['enterprise_value_m']
         cash = (self.info.get('totalCash', 0) or 0) / 1e6
