@@ -94,7 +94,7 @@ def run_dcf(ticker, g1, g2, g3, g4, g5,
     yf_ticker = yf.Ticker(ticker)
     hist = yf_ticker.history(period="2y")
 
-    shares = yf_ticker.info.get("sharesOutstanding", None)
+    shares = yf_ticker.fast_info.get("shares", None)
 
     if shares and price > 10000:
         price = price / shares
