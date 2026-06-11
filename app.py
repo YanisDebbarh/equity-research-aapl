@@ -80,18 +80,18 @@ def run_dcf(ticker, g1, g2, g3, g4, g5,
     dcf = DCFAdvanced(ticker)
 
     price, results = dcf.run(
-        growth_rates=[g1, g2, g3, g4, g5],
-        ebit_margin=ebit_m,
-        capex_pct=capex,
-        tgr=tgr,
-        rfr=rfr,
-        erp=erp
-    )
-   st.write(results)
+    growth_rates=[g1, g2, g3, g4, g5],
+    ebit_margin=ebit_m,
+    capex_pct=capex,
+    tgr=tgr,
+    rfr=rfr,
+    erp=erp
+)
 
-    proj = dcf._projection
-    info = dcf.info
+    st.write(results)
 
+proj = dcf._projection
+info = dcf.info
     yf_ticker = yf.Ticker(ticker)
     hist = yf_ticker.history(period="2y")
 
