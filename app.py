@@ -93,6 +93,7 @@ def run_dcf(ticker, g1, g2, g3, g4, g5, ebit_m, capex, tgr, rfr, erp):
         info = dcf.info or {}
         hist = yf.Ticker(ticker).history(period="2y")
         return price, results, proj, info, hist
+        
     except Exception as e:
     st.error(f"DCF failed for {ticker}: {e}")
     st.exception(e)
