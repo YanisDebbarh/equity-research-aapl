@@ -184,18 +184,12 @@ class DCFAdvanced:
         return self._results
 
     # ── EQUITY PER SHARE ─────────────────────────────
-   def equity_per_share(self):
+  def equity_per_share(self):
     try:
         ev = self._results['enterprise_value_m']
-
         cash = (self.info.get('totalCash', 0) or 0) / 1e6
         debt = (self.info.get('totalDebt', 0) or 0) / 1e6
-
-        shares = self.info.get('sharesOutstanding', None)
-        if not shares:
-            shares = self.stock.fast_info.get('shares', None)
-
-        shares = shares / 1e6 if shares else 0
+        shares = (self.info.get('sharesOutstanding', 1) or 1) / 1e6
 
         equity = ev + cash - debt
         price = equity / shares if shares > 0 else 0
