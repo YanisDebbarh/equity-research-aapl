@@ -19,7 +19,7 @@ with st.sidebar:
     ticker = st.text_input("Ticker", value="AAPL").upper()
 
 # ── CALIBRATION ──────────────────────────────────────
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=86400)
 def get_calibration(ticker):
     try:
         dcf  = DCFAdvanced(ticker)
@@ -77,7 +77,10 @@ with st.sidebar:
 **Beta**     : {cal['beta']}
 **LTM Rev**  : ${cal['revenue_ltm']/1e3:.1f}B
 """)
-
+@st.cache_data(ttl=300)
+def get_price_history(ticker):
+    return yf.Ticker(ticker).history(period="2y")
+    
 # ── RUN DCF ──────────────────────────────────────────
 @st.cache_data(ttl=3600)
 def run_dcf(ticker, g1, g2, g3, g4, g5, ebit_m, capex, tgr, rfr, erp):
@@ -91,9 +94,8 @@ def run_dcf(ticker, g1, g2, g3, g4, g5, ebit_m, capex, tgr, rfr, erp):
         )
         proj = dcf._projection
         info = dcf.info or {}
-        hist = yf.Ticker(ticker).history(period="2y")
+        hist = get_price_history(ticker)
         return price, results, proj, info, hist
-        
     except Exception as e:
     st.error(f"DCF failed for {ticker}: {e}")
     st.exception(e)
