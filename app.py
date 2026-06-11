@@ -76,22 +76,27 @@ with st.sidebar:
 @st.cache_data(ttl=3600)
 def run_dcf(ticker, g1, g2, g3, g4, g5,
             ebit_m, capex, tgr, rfr, erp):
+
     dcf = DCFAdvanced(ticker)
+
     price, results = dcf.run(
         growth_rates=[g1, g2, g3, g4, g5],
-        ebit_margin =ebit_m,
-        capex_pct   =capex,
-        tgr         =tgr,
-        rfr         =rfr,
-        erp         =erp,
+        ebit_margin=ebit_m,
+        capex_pct=capex,
+        tgr=tgr,
+        rfr=rfr,
+        erp=erp
     )
-shares = info.get("sharesOutstanding", None)
-if shares:
-    price = price / shares
-    price = price / shares
+
     proj = dcf._projection
     info = dcf.info
+
+    shares = info.get("sharesOutstanding", None)
+    if shares:
+        price = price / shares
+
     hist = yf.Ticker(ticker).history(period="2y")
+
     return price, results, proj, info, hist
 
 price, results, proj, info, hist = run_dcf(
