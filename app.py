@@ -19,7 +19,7 @@ with st.sidebar:
     ticker = st.text_input("Ticker", value="AAPL").upper()
 
 # ── AUTO-CALIBRATION ─────────────────────────────────
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
 def get_calibration(ticker):
     dcf  = DCFAdvanced(ticker)
     hist = dcf.get_historical_data()
@@ -73,7 +73,7 @@ with st.sidebar:
     """)
 
 # ── RUN DCF ──────────────────────────────────────────
-@st.cache_data(ttl=3600)
+# @st.cache_data(ttl=3600)
 def run_dcf(ticker, g1, g2, g3, g4, g5,
             ebit_m, capex, tgr, rfr, erp):
 
@@ -87,6 +87,7 @@ def run_dcf(ticker, g1, g2, g3, g4, g5,
         rfr=rfr,
         erp=erp
     )
+   st.write(results)
 
     proj = dcf._projection
     info = dcf.info
