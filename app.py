@@ -97,9 +97,9 @@ def run_dcf(ticker, g1, g2, g3, g4, g5, ebit_m, capex, tgr, rfr, erp):
         hist = get_price_history(ticker)
         return price, results, proj, info, hist
     except Exception as e:
-    st.error(f"DCF failed for {ticker}: {e}")
-    st.exception(e)
-    return np.nan, {}, pd.DataFrame(), {}, pd.DataFrame()
+        st.error(f"DCF failed for {ticker}: {e}")
+        st.exception(e)
+        return np.nan, {}, pd.DataFrame(), {}, pd.DataFrame()
 
 price, results, proj, info, hist = run_dcf(
     ticker, g1, g2, g3, g4, g5, ebit_m, capex, tgr, rfr, erp
