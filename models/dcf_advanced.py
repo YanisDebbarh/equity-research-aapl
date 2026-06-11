@@ -123,7 +123,8 @@ class DCFAdvanced:
             mkt_cap  = float(self.info.get('marketCap', 1) or 1)
             we       = mkt_cap / (mkt_cap + debt)
             wd       = debt    / (mkt_cap + debt)
-            wacc     = max(0.06, min(0.15, we * ke + wd * kd))
+            raw_wacc = we * ke + wd * kd
+            wacc = raw_wacc
         except Exception:
             ke, kd, we, wd, t = 0.11, 0.03, 0.85, 0.15, 0.21
             wacc = 0.10
