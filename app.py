@@ -91,11 +91,13 @@ def run_dcf(ticker, g1, g2, g3, g4, g5,
     proj = dcf._projection
     info = dcf.info
 
-    shares = info.get("sharesOutstanding", None)
-    if shares:
-        price = price / shares
+    yf_ticker = yf.Ticker(ticker)
+    hist = yf_ticker.history(period="2y")
 
-    hist = yf.Ticker(ticker).history(period="2y")
+    shares = yf_ticker.info.get("sharesOutstanding", None)
+
+    if shares and price > 10000:
+        price = price / shares
 
     return price, results, proj, info, hist
 
